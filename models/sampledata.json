@@ -1,0 +1,35 @@
+{
+    "name": "demo1",
+    "config": {
+        "clientId": "",
+        "clientSecret": "",
+        "apiURI": ""
+    },
+    "states": [
+        {
+            "send": [
+                {
+                    "channel": "email",
+                    "templateId": ""
+                }
+            ]
+        },
+        {
+            "send": [
+                {
+                    "channel": "push",
+                    "templateId": ""
+                }
+            ]
+        },
+        {
+            "send": [
+                {
+                    "channel": "sms",
+                    "templateId": "",
+                    "message": ""
+                }
+            ]
+        }
+    ]
+}
