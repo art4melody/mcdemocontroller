@@ -51,19 +51,74 @@ function demoExists(demo) {
     return false;
 }
 
-function addDemo(demo) {
-    if (demoExists(demo)) {
-        console.log("Demo NOT added.");
-        return false;
-    }
-    if (typeof(demo) !== 'object') {
-        console.log("Demo NOT added. Data format mismatch.");
-        return false;
+function validateDemoData(demo) {
+    if (typeof(demo) !== 'object' || Array.isArray(demo)) {
+        return "Demo NOT valid. Data format mismatch.";
     }
     if (!demo.name) {
-        console.log("Demo NOT added. Demo name not found.");
-        return false;
+        return "Demo NOT valid. Demo name not found.";
     }
+    if (!demo.config) {
+        return "Demo NOT valid. Demo config not found.";
+    }
+    if (!demo.config.clientId || !demo.config.clientSecret) {
+        return "Demo NOT valid. ClientId or ClientSecret config not found.";
+    }
+    if (!demo.config.apiURL) {
+        return "Demo NOT valid. API URL config not found.";
+    }
+    if (!demo.config.authURL) {
+        return "Demo NOT valid. Auth URL config not found.";
+    }
+    if (!demo.states) {
+        return "Demo NOT valid. States not found.";
+    }
+    if (!Array.isArray(demo.states)) {
+        return "Demo NOT valid. States has to be an array.";
+    }
+    for (let i = 0; i < demo.states.length; i++) {
+        let state = demo.states[i];
+        if (state.send) {
+            if (!Array.isArray(state.send)) {
+                return "Demo NOT valid. State send attribute has to be an array.";
+            }
+            for (let j = 0; j < state.send.length; j++) {
+                let send = state.send[j];
+                if (!send.channel) {
+                    return "Demo NOT valid. State send has to have channel attribute.";
+                }
+                switch(send.channel.toLowerCase()) {
+                    case "email":
+                        if (!send.triggeredEmailExternalKey || !send.email || !send.customerKey) {
+                            return "Demo NOT valid. Email send has to have triggeredEmailExternalKey, email, customerKey attributes.";
+                        }
+                        break;
+                    case "sms":
+                        if (!send.templateId || !send.mobileNumbers) {
+                            return "Demo NOT valid. SMS send has to have templateId, mobileNumbers attributes.";
+                        }
+                        if (!Array.isArray(send.mobileNumbers)) {
+                            return "Demo NOT valid. SMS send mobileNumbers attribute has to be an array.";
+                        }
+                        break;
+                    case "push":
+                        if (!send.templateId || !send.listId) {
+                            return "Demo NOT valid. Push send has to have templateId, listId attributes.";
+                        }
+                        break;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function addDemo(demo) {
+    if (demoExists(demo)) {
+        return `Demo NOT added. Data with the name ${demo.name} already exists.`;
+    }
+    let msg = validateDemoData(demo);
+    if (msg) return msg;
 
     let now = new Date();
     demo.createdDate = now.toJSON();
@@ -75,22 +130,15 @@ function addDemo(demo) {
     console.log(`Demo ${demo.name} updated.`);
 
     saveData();
-    return true;
+    return false;
 }
 
 function updateDemo(name, demo) {
     if (!demoExists(demo)) {
-        console.log("Demo NOT updated.");
-        return false;
+        return `Demo NOT updated. Data with the name ${demo.name} already exists.`;
     }
-    if (typeof(demo) !== 'object') {
-        console.log("Demo NOT updated. Data format mismatch.");
-        return false;
-    }
-    if (!demo.config || !demo.states) {
-        console.log("Demo NOT updated. No data to update.");
-        return false;
-    }
+    let msg = validateDemoData(demo);
+    if (msg) return msg;
 
     for (let i = 0; i < demos.length; i++) {
         if (demos[i].name === name) {
@@ -105,7 +153,7 @@ function updateDemo(name, demo) {
     }
 
     saveData();
-    return true;
+    return false;
 }
 
 function deleteDemo(demo) {
@@ -114,8 +162,7 @@ function deleteDemo(demo) {
         name = demo;
     } else if (typeof(demo) === "object") {
         if (!demo.name) {
-            console.log(`Delete operation aborted. Demo name not found.`);
-            return false;
+            return `Delete operation aborted. Demo name not found.`;
         }
         name = demo.name;
     }
@@ -132,7 +179,11 @@ function deleteDemo(demo) {
 
     saveData();
 
-    return (initialSize != demos.length);
+    if (initialSize == demos.length) {
+        return "Nothing is deleted.";
+    }
+
+    return false;
 }
 
 function getDemos() {

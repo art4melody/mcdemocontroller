@@ -21,10 +21,10 @@ app.post('/api/v1/demo', (req, res) => {
 
     console.log(demo);
     let result = demos.addDemo(demo);
-    if (result) {
+    if (!result) {
         res.send('Data inserted.');
     } else {
-        res.send('Not modified.');
+        res.status(400).send(result);
     }
 });
 
@@ -32,12 +32,12 @@ app.post('/api/v1/demo/:key', (req, res) => {
     const key = req.params.key;
     const newDemo = req.body;
 
+    console.log(newDemo);
     let result = demos.updateDemo(key, newDemo);
-
-    if (result) {
+    if (!result) {
         res.send(key + ' is edited.');
     } else {
-        res.send('Not modified.');
+        res.status(400).send(result);
     }
 });
 
@@ -60,10 +60,10 @@ app.delete('/api/v1/demo/:key', (req, res) => {
     const key = req.params.key;
     let result = demos.deleteDemo(key);
 
-    if (result) {
+    if (!result) {
         res.send(key + ' deleted.');
     } else {
-        res.send('Nothing deleted.');
+        res.status(400).send(result);
     }
 });
 

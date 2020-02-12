@@ -86,6 +86,7 @@ function runState(demoName) {
     let config = demo.config;
     // Currently support sends only
     let sendArray = state.send;
+    if (!sendArray) return;
 
     console.log(`Demo ${demoName} state is ${stateNo}.`);
     sendArray.forEach(send => {
