@@ -9,6 +9,10 @@ let demos = [];
 function loadData() {
     try {
         console.log("Loading demo database: " + database);
+        if (!fs.existsSync(database)) {
+            console.log("Database file does not exist. Creating one.");
+            fs.writeFileSync(database, '[]');
+        }
         const data = fs.readFileSync(database);
         demos = JSON.parse(data);
         console.log("Database loaded.");

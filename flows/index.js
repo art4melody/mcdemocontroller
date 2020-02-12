@@ -11,6 +11,10 @@ let states = {};
 function loadData() {
     try {
         console.log("Loading flow database: " + database);
+        if (!fs.existsSync(database)) {
+            console.log("Database file does not exist. Creating one.");
+            fs.writeFileSync(database, '{}');
+        }
         const data = fs.readFileSync(database);
         states = JSON.parse(data);
         console.log("Database loaded.");
