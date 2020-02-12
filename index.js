@@ -1,6 +1,7 @@
 'use strict';
 
-const models = require('./models');
+const demos = require('./demos');
+const flows = require('./flows');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -19,7 +20,7 @@ app.post('/api/v1/demo', (req, res) => {
     const demo = req.body;
 
     console.log(demo);
-    let result = models.addDemo(demo);
+    let result = demos.addDemo(demo);
     if (result) {
         res.send('Data inserted.');
     } else {
@@ -31,7 +32,7 @@ app.post('/api/v1/demo/:key', (req, res) => {
     const key = req.params.key;
     const newDemo = req.body;
 
-    let result = models.updateDemo(key, newDemo);
+    let result = demos.updateDemo(key, newDemo);
 
     if (result) {
         res.send(key + ' is edited.');
@@ -41,12 +42,12 @@ app.post('/api/v1/demo/:key', (req, res) => {
 });
 
 app.get('/api/v1/demos', (req, res) => {
-    res.json(models.getDemos());
+    res.json(demos.getDemos());
 });
 
 app.get('/api/v1/demo/:key', (req, res) => {
     const key = req.params.key;
-    let demo = models.getDemo(key);
+    let demo = demos.getDemo(key);
 
     if (demo) {
         res.json(demo);
@@ -57,7 +58,7 @@ app.get('/api/v1/demo/:key', (req, res) => {
 
 app.delete('/api/v1/demo/:key', (req, res) => {
     const key = req.params.key;
-    let result = models.deleteDemo(key);
+    let result = demos.deleteDemo(key);
 
     if (result) {
         res.send(key + ' deleted.');
@@ -66,7 +67,21 @@ app.delete('/api/v1/demo/:key', (req, res) => {
     }
 });
 
-models.loadData();
+app.get('/api/v1/demo/flow/run/:key', (req, res) => {
+    const key = req.params.key;
+    flows.runState(key);
+    flows.incrementState(key);
+    res.send();
+});
+
+app.get('/api/v1/demo/flow/reset/:key', (req, res) => {
+    const key = req.params.key;
+    flows.resetState(key);
+    res.send();
+});
+
+demos.loadData();
+flows.loadData();
 app.listen(port, () => {
     console.log('Server is listening on port ' + port);
 });

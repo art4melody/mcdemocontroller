@@ -3,12 +3,12 @@
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 
-let database = './db.json';
+let database = './demo.db.json';
 let demos = [];
 
 function loadData() {
     try {
-        console.log("Loading database: " + database);
+        console.log("Loading demo database: " + database);
         const data = fs.readFileSync(database);
         demos = JSON.parse(data);
         console.log("Database loaded.");
@@ -21,7 +21,7 @@ function loadData() {
 
 function saveData() {
     try {
-        console.log("Saving database: " + database);
+        console.log("Saving demo database: " + database);
         let data = JSON.stringify(demos);
         fs.writeFileSync(database, data);
         console.log("Database saved.");
