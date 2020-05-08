@@ -1,42 +1,24 @@
 'use strict';
 
 const uuidv4 = require('uuid/v4');
-const fs = require('fs');
+const mongodb = require('../db');
+const collection = 'demos';
 
-let database = './demo.db.json';
-let demos = [];
-
-function loadData() {
-    try {
-        console.log("Loading demo database: " + database);
-        if (!fs.existsSync(database)) {
-            console.log("Database file does not exist. Creating one.");
-            fs.writeFileSync(database, '[]');
-        }
-        const data = fs.readFileSync(database);
-        demos = JSON.parse(data);
-        console.log("Database loaded.");
-    } catch (err) {
-        console.log("Database couldn't be loaded. Check if file exists and data is not corrupted.");
-        return false;
-    }
-    return true;
+/*
+async function loadData() {
+    demos = await mongodb.load(collection) || [];
+    console.log(demos);
 }
+*/
 
-function saveData() {
-    try {
-        console.log("Saving demo database: " + database);
-        let data = JSON.stringify(demos);
-        fs.writeFileSync(database, data);
-        console.log("Database saved.");
-    } catch (err) {
-        console.log("Database couldn't be saved.");
-        return false;
-    }
-    return true;
+/*
+// DEPRECATED
+async function saveData() {
+    await mongodb.save(collection, demos);
 }
+]*/
 
-function demoExists(demo) {
+async function demoExists(demo) {
     let name;
     if (typeof(demo) === "string") {
         name = demo;
@@ -44,15 +26,15 @@ function demoExists(demo) {
         if (!demo.name) return true;
         name = demo.name;
     }
-    
-    for (let i = 0; i < demos.length; i++) {
-        if (demos[i].name === name) {
-            console.log(`Demo '${name}' exists in the database.`);
-            return true;
-        }
+
+    var r = await mongodb.get(collection, {name: name});
+    if (!r) {
+        console.log(`Demo '${name}' does NOT exists in the database.`);
+        return false;
     }
-    console.log(`Demo '${name}' does NOT exists in the database.`);
-    return false;
+    
+    console.log(`Demo '${name}' exists in the database.`);
+    return true;
 }
 
 function validateDemoData(demo) {
@@ -117,8 +99,8 @@ function validateDemoData(demo) {
     return false;
 }
 
-function addDemo(demo) {
-    if (demoExists(demo)) {
+async function addDemo(demo) {
+    if (await demoExists(demo)) {
         return `Demo NOT added. Data with the name ${demo.name} already exists.`;
     }
     let msg = validateDemoData(demo);
@@ -130,37 +112,28 @@ function addDemo(demo) {
 
     demo.id = uuidv4();
 
-    demos.push(demo);
-    console.log(`Demo ${demo.name} updated.`);
-
-    saveData();
-    return false;
+    var r = await mongodb.insert(collection, demo);
+    return !r;
 }
 
-function updateDemo(name, demo) {
-    if (!demoExists(demo)) {
-        return `Demo NOT updated. Data with the name ${demo.name} already exists.`;
+async function updateDemo(name, demo) {
+    /*
+    // No need to check anymore
+    if (!await demoExists(demo)) {
+        return `Demo with the name ${demo.name} NOT found.`;
     }
+    */
     let msg = validateDemoData(demo);
     if (msg) return msg;
 
-    for (let i = 0; i < demos.length; i++) {
-        if (demos[i].name === name) {
-            let now = new Date();
-            demos[i].updatedDate = now.toJSON();
+    let now = new Date();
+    demo.updatedDate = now.toJSON();
 
-            demos[i].config = demo.config;
-            demos[i].states = demo.states;
-
-            console.log(`Demo ${name} updated.`);
-        }
-    }
-
-    saveData();
-    return false;
+    var r = await mongodb.update(collection, {name: name}, demo);
+    return !r;
 }
 
-function deleteDemo(demo) {
+async function deleteDemo(demo) {
     let name;
     if (typeof(demo) === "string") {
         name = demo;
@@ -170,44 +143,27 @@ function deleteDemo(demo) {
         }
         name = demo.name;
     }
-    let initialSize = demos.length;
-    demos = demos.filter((value, index, arr) => {
-        return value.name != name;
-    });
 
-    if (initialSize != demos.length) {
-        console.log(`Demo ${name} deleted.`);
-    } else {
-        console.log(`Demo ${name} NOT found.`);
-    }
-
-    saveData();
-
-    if (initialSize == demos.length) {
-        return "Nothing is deleted.";
-    }
-
-    return false;
+    var r = await mongodb.remove(collection, {name: name});
+    return !r;
 }
 
-function getDemos() {
-    return demos;
+async function getDemos() {
+    var data = await mongodb.load(collection);
+    return data;
 }
 
-function getDemo(name) {
+async function getDemo(name) {
     if (typeof(name) !== "string") {
         console.log(`Format mismatch.`);
         return null;
     }
-    for (let demo of demos) {
-        if (demo.name === name) {
-            return demo;
-        }
-    }
-    return null;
+    
+    var data = await mongodb.get(collection, {name: name});
+    return data;
 }
 
 module.exports = {
-    saveData, loadData,
+    /*saveData, loadData,*/
     getDemo, getDemos, addDemo, updateDemo, deleteDemo
 };

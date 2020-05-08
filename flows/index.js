@@ -1,54 +1,37 @@
 'use strict';
 
-const fs = require('fs');
 const demos = require('../demos');
-
+const mongodb = require('../db');
+const collection = 'flows';
 const FuelRest = require('fuel-rest');
 
-let database = './flow.db.json';
-let states = {};
-
-function loadData() {
-    try {
-        console.log("Loading flow database: " + database);
-        if (!fs.existsSync(database)) {
-            console.log("Database file does not exist. Creating one.");
-            fs.writeFileSync(database, '{}');
-        }
-        const data = fs.readFileSync(database);
-        states = JSON.parse(data);
-        console.log("Database loaded.");
-    } catch (err) {
-        console.log("Database couldn't be loaded. Check if file exists and data is not corrupted.");
-        return false;
-    }
-    return true;
+/*
+async function loadData() {
+    states = await mongodb.load(collection)[0] || {};
+    console.log(states);
 }
+*/
 
-function saveData() {
-    try {
-        console.log("Saving flow database: " + database);
-        let data = JSON.stringify(states);
-        fs.writeFileSync(database, data);
-        console.log("Database saved.");
-    } catch (err) {
-        console.log("Database couldn't be saved.");
-        return false;
-    }
-    return true;
+/*
+// DEPRECATED
+async function saveData() {
+    await mongodb.save(collection, [states]);
 }
+*/
 
-function getState(demoName) {
-    if (!states[demoName]) {
-        states[demoName] = 0;
-        saveData();
+async function getState(demoName) {
+    var data = await mongodb.get(collection, {name: demoName});
+
+    if (!data) {
+        await insertState();
+        return 0;
     }
 
-    return states[demoName];
+    return data.state;
 }
 
-function setState(demoName, state) {
-    let demo = demos.getDemo(demoName);
+async function setState(demoName, state) {
+    let demo = await demos.getDemo(demoName);
     let numStates = demo.states.length || 0;
     if (numStates == 0) {
         state = 0;
@@ -56,31 +39,39 @@ function setState(demoName, state) {
         state = (state % numStates);
     }
 
-    states[demoName] = state;
-    console.log(`Setting ${demoName} state to ${state}.`);
-    saveData();
+    await mongodb.upsert(collection, {name: demoName}, {name: demoName, state: state});
 }
 
-function incrementState(demoName) {
-    setState(demoName, states[demoName]+1);
+async function insertState(demoName) {
+    await mongodb.insert(collection, {name: demoName, state: 0});
 }
 
-function decrementState(demoName) {
-    setState(demoName, states[demoName]-1);
+async function deleteState(demoName) {
+    await mongodb.remove(collection, {name: demoName});
 }
 
-function resetState(demoName) {
-    setState(demoName, 0);
+async function incrementState(demoName) {
+    var state = await getState(demoName);
+    await setState(demoName, state + 1);
 }
 
-function runState(demoName) {
-    let demo = demos.getDemo(demoName);
+async function decrementState(demoName) {
+    var state = await getState(demoName);
+    await setState(demoName, state - 1);
+}
+
+async function resetState(demoName) {
+    await setState(demoName, 0);
+}
+
+async function runState(demoName) {
+    let demo = await demos.getDemo(demoName);
     if (!demo) {
         console.log(`Demo ${demoName} NOT found.`);
         return;
     }
 
-    let stateNo = getState(demoName);
+    let stateNo = await getState(demoName);
     let state = demo.states[stateNo];
     if (!state) {
         console.log(`State ${state} for demo ${demoName} NOT found.`);
@@ -106,6 +97,8 @@ function runState(demoName) {
                 break;
         }
     });
+
+    setState(demoName, stateNo + 1);
 }
 
 function sendPush(config, send) {
@@ -237,7 +230,8 @@ function sendEmail(config, send) {
 }
 
 module.exports = {
-    saveData, loadData, 
+    /*saveData, loadData,*/ 
+    insertState, deleteState,
     getState, setState, incrementState, decrementState, resetState,
     runState
 };
